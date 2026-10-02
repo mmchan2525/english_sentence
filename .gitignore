@@ -5,3 +5,16 @@ __pycache__/
 *.pyc
 .DS_Store
 Thumbs.db
+
+# Build & verification scratch scripts
+update_index.py
+verify_app.py
+verify_dataset.py
+inject_phrases.py
+check_all.py
+clean_data.py
+find_anomalies.py
+prepare_data.py
+build_full_351_dataset.py
+build_dataset.py
+parsed_new_phrases.json
