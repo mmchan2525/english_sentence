@@ -3886,9 +3886,73 @@
       return s.replace(/\s+/g, ' ').trim();
     }
 
-    // Text to Speech with 100% cross-platform compatibility (iOS Safari, Android Chrome, Edge/Chrome PC)
+    // Audio hardware wake-up utility to prevent initial syllable clipping on mobile & Bluetooth
+    function warmAudio() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.value = 0.0001; // inaudible
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(0);
+        osc.stop(ctx.currentTime + 0.04);
+      } catch (e) {}
+    }
+
+    // Voice Selection Management: prioritize high-clarity natural human voices
+    let availableVoices = [];
+    function loadVoices() {
+      if ('speechSynthesis' in window) {
+        availableVoices = window.speechSynthesis.getVoices() || [];
+      }
+    }
+    if ('speechSynthesis' in window) {
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    function getBestVoice(langPrefix) {
+      if (!availableVoices.length && 'speechSynthesis' in window) {
+        loadVoices();
+      }
+      if (!availableVoices.length) return null;
+
+      const isEn = langPrefix.startsWith('en');
+      if (isEn) {
+        // High quality US English natural voices
+        const usVoices = availableVoices.filter(v => v.lang && /^en[-_]us$/i.test(v.lang.trim()));
+        const pool = usVoices.length > 0 ? usVoices : availableVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+        
+        // Priority order: Natural neural voices (Jenny, Aria, Guy, etc.) > Google US English > Apple Natural/Siri > Samantha/Ava
+        const best = pool.find(v => /jenny.*natural|aria.*natural|guy.*natural/i.test(v.name))
+                  || pool.find(v => /google us english/i.test(v.name))
+                  || pool.find(v => /natural/i.test(v.name))
+                  || pool.find(v => /siri|ava|allison|samantha|karen/i.test(v.name))
+                  || pool.find(v => v.default)
+                  || pool[0];
+        return best || null;
+      } else {
+        // Japanese voices
+        const jaVoices = availableVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('ja'));
+        const best = jaVoices.find(v => /nanami.*natural|keita.*natural/i.test(v.name))
+                  || jaVoices.find(v => /google 日本語/i.test(v.name))
+                  || jaVoices.find(v => /natural/i.test(v.name))
+                  || jaVoices.find(v => /kyoko|otoya|haruka|sayaka|siri/i.test(v.name))
+                  || jaVoices.find(v => v.default)
+                  || jaVoices[0];
+        return best || null;
+      }
+    }
+
+    // Text to Speech with 100% cross-platform compatibility, natural pacing, and zero initial cutoff
     window._activeSpeechUtterance = null;
-    function speakText(text, lang = 'en-US', rate = 1.0) {
+    function speakText(text, lang = 'en-US', rate = null) {
       if (!('speechSynthesis' in window)) {
         showToast('お使いのブラウザは音声合成に対応していません');
         return Promise.resolve();
@@ -3905,11 +3969,24 @@
           try { window.speechSynthesis.resume(); } catch (e) {}
         }
 
-        const utterance = new SpeechSynthesisUtterance(cleaned);
+        // Prepend a micro-pause (, / 、) so audio DAC/Bluetooth hardware un-mutes
+        // before the first letter is vocalized. This completely prevents initial sound clipping!
+        const spokenText = (lang.startsWith('en') ? ', ' : '、') + cleaned;
+
+        const utterance = new SpeechSynthesisUtterance(spokenText);
         window._activeSpeechUtterance = utterance; // Prevent mobile garbage collection
 
-        utterance.lang = lang.startsWith('en') ? 'en-US' : 'ja-JP';
-        utterance.rate = rate;
+        const voice = getBestVoice(lang.split('-')[0]);
+        if (voice) {
+          utterance.voice = voice;
+          utterance.lang = voice.lang || (lang.startsWith('en') ? 'en-US' : 'ja-JP');
+        } else {
+          utterance.lang = lang.startsWith('en') ? 'en-US' : 'ja-JP';
+        }
+
+        // English speed at 0.92 is clear, articulate, and avoids slurred words; Japanese at 1.0 is standard
+        const targetRate = (typeof rate === 'number' && rate > 0) ? rate : (lang.startsWith('en') ? 0.92 : 1.0);
+        utterance.rate = targetRate;
         utterance.pitch = 1.0;
 
         let hasResolved = false;
@@ -3929,7 +4006,7 @@
 
         // Safety timeout in case browser never fires onend
         const charCount = cleaned.length;
-        const maxDurationMs = Math.max(3500, (charCount * 300) / rate);
+        const maxDurationMs = Math.max(3500, (charCount * 320) / targetRate);
         setTimeout(finish, maxDurationMs);
 
         try {
@@ -3943,12 +4020,13 @@
 
     // Audio player helper with instant interrupt support for individual button taps
     window.playPhraseAudio = function(id) {
+      warmAudio();
       if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
       }
       const item = PHRASES.find(p => p.id === id);
       if (item && item.en) {
-        speakText(item.en, 'en-US', 1.0);
+        speakText(item.en, 'en-US');
       }
     };
 
@@ -4193,11 +4271,12 @@
     });
 
     document.getElementById('cardSpeakBtn').addEventListener('click', () => {
+      warmAudio();
       if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
       }
       const cur = cardList[cardIdx];
-      if (cur) speakText(cur.en, 'en-US', 1.0);
+      if (cur) speakText(cur.en, 'en-US');
     });
 
     document.getElementById('cardFavBtn').addEventListener('click', () => {
@@ -4365,6 +4444,7 @@
     }
 
     function startPlayer() {
+      warmAudio();
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
@@ -4455,10 +4535,11 @@
 
       const speakBtn = document.getElementById('quizSpeakBtn');
       if (speakBtn) speakBtn.onclick = () => {
+        warmAudio();
         if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
           window.speechSynthesis.cancel();
         }
-        speakText(q.en, 'en-US', 1.0);
+        speakText(q.en, 'en-US');
       };
 
       // Generate 4 options
