@@ -646,30 +646,36 @@
     .now-playing-box {
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px 16px;
+      border-radius: 18px;
+      padding: 28px 20px;
       margin-bottom: 24px;
-      min-height: 140px;
+      min-height: 160px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+      text-align: center;
+      box-shadow: var(--shadow);
     }
     .np-index {
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       font-weight: 700;
       color: var(--primary);
     }
     .np-en {
-      font-size: 1.2rem;
-      font-weight: 700;
+      font-size: 1.6rem;
+      font-weight: 800;
       color: var(--text);
-      line-height: 1.4;
+      line-height: 1.45;
+      word-break: break-word;
+      letter-spacing: -0.01em;
     }
     .np-ja {
-      font-size: 0.95rem;
+      font-size: 1.05rem;
       color: var(--text-muted);
+      font-weight: 500;
+      line-height: 1.4;
     }
     .player-controls {
       display: flex;
@@ -949,8 +955,6 @@
     <section id="viewPlayer" class="view-section">
       <!-- Real-time TTS Interactive Player -->
       <div class="player-card">
-        <h2 class="player-title">⚡ リアルタイム連続リスニング</h2>
-        <p class="player-desc">ブラウザで1問ずつ進行状況を見ながら学習できるモードです。</p>
 
         <div class="now-playing-box">
           <div style="display: flex; gap: 8px; align-items: center;">
