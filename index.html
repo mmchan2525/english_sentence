@@ -379,24 +379,30 @@
     }
 
     .phrase-en {
-      font-size: 1.05rem;
-      font-weight: 600;
+      font-size: 1.25rem;
+      font-weight: 700;
       line-height: 1.45;
       color: var(--text);
+      word-break: break-word;
+      margin-bottom: 4px;
     }
     .phrase-ja {
-      font-size: 0.95rem;
+      font-size: 1.08rem;
       color: var(--text-muted);
-      line-height: 1.4;
+      line-height: 1.45;
+      word-break: break-word;
+      margin-bottom: 2px;
     }
     .phrase-note {
-      font-size: 0.8rem;
+      font-size: 0.9rem;
       color: var(--accent);
       background: rgba(6, 182, 212, 0.08);
-      padding: 3px 8px;
+      padding: 4px 10px;
       border-radius: 6px;
       display: inline-block;
       width: fit-content;
+      line-height: 1.4;
+      word-break: break-word;
     }
 
     /* Masking states */
@@ -480,15 +486,15 @@
       background: linear-gradient(180deg, var(--card-bg), var(--primary-light));
     }
     .card-top-tag {
-      font-size: 0.8rem;
+      font-size: 0.9rem;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 1px;
       font-weight: 700;
     }
     .card-main-text {
-      font-size: 1.35rem;
-      font-weight: 700;
+      font-size: 1.7rem;
+      font-weight: 800;
       line-height: 1.45;
       color: var(--text);
       margin: auto 0;
@@ -498,7 +504,7 @@
       color: var(--primary-dark);
     }
     .card-hint {
-      font-size: 0.8rem;
+      font-size: 0.9rem;
       color: var(--text-muted);
       display: flex;
       align-items: center;
@@ -664,7 +670,7 @@
       color: var(--primary);
     }
     .np-en {
-      font-size: 1.6rem;
+      font-size: 1.75rem;
       font-weight: 800;
       color: var(--text);
       line-height: 1.45;
@@ -672,9 +678,9 @@
       letter-spacing: -0.01em;
     }
     .np-ja {
-      font-size: 1.05rem;
+      font-size: 1.18rem;
       color: var(--text-muted);
-      font-weight: 500;
+      font-weight: 600;
       line-height: 1.4;
     }
     .player-controls {
@@ -4331,11 +4337,111 @@
 
 
     /* ========================================================
-       3. AUTO LISTENING PLAYER LOGIC
+       3. AUTO LISTENING PLAYER LOGIC (With Background Playback & Media Session)
        ======================================================== */
     let isPlaying = false;
     let playerIdx = 0;
     let playTimeout = null;
+
+    // Background Audio & Media Session Setup
+    const SILENT_WAV_URI = 'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAA==';
+
+    let bgAudioEl = null;
+    function startBgAudio() {
+      try {
+        if (!bgAudioEl) {
+          bgAudioEl = document.createElement('audio');
+          bgAudioEl.setAttribute('playsinline', '');
+          bgAudioEl.setAttribute('webkit-playsinline', '');
+          bgAudioEl.loop = true;
+          bgAudioEl.src = SILENT_WAV_URI;
+          bgAudioEl.volume = 0.01;
+        }
+        bgAudioEl.play().catch(() => {});
+      } catch (e) {}
+    }
+
+    function stopBgAudio() {
+      try {
+        if (bgAudioEl) {
+          bgAudioEl.pause();
+        }
+      } catch (e) {}
+    }
+
+    // High-precision sleep that resists background throttling (using Web Worker)
+    function bgSleep(ms) {
+      return new Promise((resolve) => {
+        if (window.Worker) {
+          try {
+            const blob = new Blob([
+              'self.onmessage=function(e){setTimeout(function(){self.postMessage(0);},e.data);};'
+            ], { type: 'application/javascript' });
+            const w = new Worker(URL.createObjectURL(blob));
+            w.onmessage = function() {
+              w.terminate();
+              resolve();
+            };
+            w.postMessage(ms);
+            return;
+          } catch (e) {}
+        }
+        setTimeout(resolve, ms);
+      });
+    }
+
+    // Lock screen media session integration
+    function updateMediaSession(cur, phaseText) {
+      if ('mediaSession' in navigator && cur) {
+        try {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: cur.en,
+            artist: cur.ja + (phaseText ? ` (${phaseText})` : ''),
+            album: "Daily Yuri's English",
+            artwork: [
+              { src: 'avatar.png', sizes: '192x192', type: 'image/png' }
+            ]
+          });
+          navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+        } catch (e) {}
+      }
+    }
+
+    if ('mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.setActionHandler('play', () => {
+          if (!isPlaying) startPlayer();
+        });
+        navigator.mediaSession.setActionHandler('pause', () => {
+          if (isPlaying) stopPlayer();
+        });
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+          const list = getPlayerList();
+          playerIdx = (playerIdx + 1) % list.length;
+          updatePlayerDisplay();
+          if (isPlaying) {
+            stopPlayer();
+            startPlayer();
+          }
+        });
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+          const list = getPlayerList();
+          playerIdx = (playerIdx - 1 + list.length) % list.length;
+          updatePlayerDisplay();
+          if (isPlaying) {
+            stopPlayer();
+            startPlayer();
+          }
+        });
+      } catch (e) {}
+    }
+
+    // Ensure audio resumes if tab is reactivated
+    document.addEventListener('visibilitychange', () => {
+      if (isPlaying && window.speechSynthesis && window.speechSynthesis.paused) {
+        try { window.speechSynthesis.resume(); } catch (e) {}
+      }
+    });
 
     const playerIndexEl = document.getElementById('playerIndex');
     const playerEnEl = document.getElementById('playerEn');
@@ -4387,77 +4493,101 @@
       const cur = list[playerIdx];
       updatePlayerDisplay();
 
-      const speed = 1.0; // 音声の歪みを防ぐため等速(1.0x)に固定
+      // Ensure speech synthesis is unpaused if locked/backgrounded
+      if (window.speechSynthesis && window.speechSynthesis.paused) {
+        try { window.speechSynthesis.resume(); } catch (e) {}
+      }
+
       const mode = playerModeSelect.value;
 
       if (mode === 'en1_ja1_en2') {
         // 1. 英文 1回
         setPlayerPhase("🗣️ 英文 (1回目)");
-        await speakText(cur.en, 'en-US', speed);
+        updateMediaSession(cur, "英文 1回目");
+        await speakText(cur.en, 'en-US');
         if (!isPlaying) return;
-        await new Promise(r => setTimeout(r, 700));
+        await bgSleep(700);
 
         // 2. 日本語訳 1回
         setPlayerPhase("🇯🇵 日本語訳");
-        await speakText(cur.ja, 'ja-JP', 1.0);
+        updateMediaSession(cur, "日本語訳");
+        await speakText(cur.ja, 'ja-JP');
         if (!isPlaying) return;
-        await new Promise(r => setTimeout(r, 700));
+        await bgSleep(700);
 
         // 3. 英文 2回 (1/2)
         setPlayerPhase("🗣️ 英文リピート (1/2)");
-        await speakText(cur.en, 'en-US', speed);
+        updateMediaSession(cur, "英文 2回目");
+        await speakText(cur.en, 'en-US');
         if (!isPlaying) return;
-        await new Promise(r => setTimeout(r, 700));
+        await bgSleep(700);
 
         // 4. 英文 2回 (2/2)
         setPlayerPhase("🗣️ 英文リピート (2/2)");
-        await speakText(cur.en, 'en-US', speed);
+        updateMediaSession(cur, "英文 3回目");
+        await speakText(cur.en, 'en-US');
       } else if (mode === 'en_ja') {
         setPlayerPhase("🗣️ 英文");
-        await speakText(cur.en, 'en-US', speed);
+        updateMediaSession(cur, "英文");
+        await speakText(cur.en, 'en-US');
         if (!isPlaying) return;
-        await new Promise(r => setTimeout(r, 600));
+        await bgSleep(600);
         setPlayerPhase("🇯🇵 日本語訳");
-        await speakText(cur.ja, 'ja-JP', 1.0);
+        updateMediaSession(cur, "日本語訳");
+        await speakText(cur.ja, 'ja-JP');
       } else if (mode === 'en_twice') {
         setPlayerPhase("🗣️ 英文 (1/2)");
-        await speakText(cur.en, 'en-US', speed);
+        updateMediaSession(cur, "英文 1/2");
+        await speakText(cur.en, 'en-US');
         if (!isPlaying) return;
-        await new Promise(r => setTimeout(r, 500));
+        await bgSleep(500);
         setPlayerPhase("🗣️ 英文 (2/2)");
-        await speakText(cur.en, 'en-US', speed);
+        updateMediaSession(cur, "英文 2/2");
+        await speakText(cur.en, 'en-US');
         if (!isPlaying) return;
-        await new Promise(r => setTimeout(r, 600));
+        await bgSleep(600);
         setPlayerPhase("🇯🇵 日本語訳");
-        await speakText(cur.ja, 'ja-JP', 1.0);
+        updateMediaSession(cur, "日本語訳");
+        await speakText(cur.ja, 'ja-JP');
       } else { // en_only
         setPlayerPhase("🗣️ 英文");
-        await speakText(cur.en, 'en-US', speed);
+        updateMediaSession(cur, "英文");
+        await speakText(cur.en, 'en-US');
       }
 
       setPlayerPhase("⏸ 間隔 (次の文へ)");
+      updateMediaSession(cur, "次の文へ");
       if (!isPlaying) return;
-      playTimeout = setTimeout(() => {
-        playerIdx = (playerIdx + 1) % list.length;
-        stepPlay();
-      }, 1500);
+      await bgSleep(1400);
+      if (!isPlaying) return;
+      playerIdx = (playerIdx + 1) % list.length;
+      stepPlay();
     }
 
     function startPlayer() {
       warmAudio();
+      startBgAudio();
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
       isPlaying = true;
       playerPlayToggle.innerText = '⏸';
+      const cur = getPlayerList()[playerIdx];
+      updateMediaSession(cur, "再生中");
       stepPlay();
     }
 
     function stopPlayer() {
       isPlaying = false;
       playerPlayToggle.innerText = '▶';
+      stopBgAudio();
       if (playTimeout) clearTimeout(playTimeout);
-      window.speechSynthesis.cancel();
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
     }
 
     playerTargetSelect.addEventListener('change', () => {
