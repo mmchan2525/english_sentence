@@ -3862,63 +3862,35 @@
       }, 250);
     };
 
-    // Voice Management for natural English & Japanese pronunciation
-    let availableVoices = [];
-    function loadVoices() {
-      if ('speechSynthesis' in window) {
-        availableVoices = window.speechSynthesis.getVoices() || [];
-      }
-    }
-    if ('speechSynthesis' in window) {
-      loadVoices();
-      window.speechSynthesis.onvoiceschanged = loadVoices;
-    }
-
-    function getBestVoice(langPrefix) {
-      if (!availableVoices.length && 'speechSynthesis' in window) {
-        loadVoices();
-      }
-      const isEn = langPrefix.startsWith('en');
-      const matching = availableVoices.filter(v => {
-        if (!v.lang) return false;
-        const l = v.lang.toLowerCase().replace('_', '-');
-        return isEn ? l.startsWith('en') : l.startsWith('ja');
-      });
-      if (!matching.length) return null;
-
-      if (isEn) {
-        // Preferred native English voices for high clarity
-        const preferred = matching.find(v => 
-          /samantha|karen|allison|ava|daniel|oliver|serena|google us english|natural|enhanced|premium/i.test(v.name)
-        );
-        return preferred || matching[0];
-      } else {
-        // Preferred natural Japanese voices
-        const preferred = matching.find(v => 
-          /kyoko|otoya|siri|google 日本語|nanami|keita|natural/i.test(v.name)
-        );
-        return preferred || matching[0];
-      }
-    }
-
-    // Clean text for speech synthesis (strips emojis, annotations, and awkward symbols)
+    // Clean text for speech synthesis (strips annotations, symbols, and standardizes punctuation)
     function cleanSpeechText(text, lang = 'en-US') {
       if (!text) return '';
       let s = text;
-      // Remove emojis and pictographs
-      s = s.replace(/[\p{Extended_Pictographic}\u2600-\u27BF\uFE00-\uFE0F\u1F300-\u1FAFF\u1F000-\u1F2FF]/gu, '');
-      // Remove parenthesized annotations
+      // Safely remove any emoji / pictograph if present
+      s = s.replace(/[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F2FF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}]/gu, '');
+      // Remove parenthesized annotations e.g. (xxx) or （xxx）
       s = s.replace(/\([^)]*\)|（[^）]*）/g, '');
-      // Remove arrows
-      s = s.replace(/[→⇒⇨➔]/g, '');
+      // Remove brackets e.g. [xxx] or 【xxx】
+      s = s.replace(/\[[^\]]*\]|【[^】]*】/g, '');
+      // Remove arrows, stars, markers
+      s = s.replace(/[→⇒⇨➔★☆⚡💡📌]/g, '');
       if (lang.startsWith('ja')) {
         s = s.replace(/[〜～]/g, 'ー');
         s = s.replace(/[/／]/g, '、');
+        s = s.replace(/[・]/g, '、');
+        // Ensure polite sentence ending has closing period for natural TTS cadence
+        if (!/[。！？!?]$/.test(s.trim())) {
+          s = s.trim() + '。';
+        }
+      } else {
+        // Normalize English apostrophes and slashes for natural pronunciation
+        s = s.replace(/[’']/g, "'");
+        s = s.replace(/[/]/g, ' or ');
       }
       return s.replace(/\s+/g, ' ').trim();
     }
 
-    // Text to Speech with Voice Selection & iOS/Chrome reliability
+    // Text to Speech with 100% cross-platform compatibility (iOS Safari, Android Chrome, Edge/Chrome PC)
     window._activeSpeechUtterance = null;
     function speakText(text, lang = 'en-US', rate = 1.0) {
       if (!('speechSynthesis' in window)) {
@@ -3932,47 +3904,57 @@
           return;
         }
 
-        // Cancel previous speech if still talking
-        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
-          window.speechSynthesis.cancel();
+        // Resume if browser TTS is paused in background (fixes Chrome pause bug)
+        if (window.speechSynthesis.paused) {
+          try { window.speechSynthesis.resume(); } catch (e) {}
         }
 
-        setTimeout(() => {
-          const utterance = new SpeechSynthesisUtterance(cleaned);
-          window._activeSpeechUtterance = utterance; // Prevent mobile garbage collection
+        const utterance = new SpeechSynthesisUtterance(cleaned);
+        window._activeSpeechUtterance = utterance; // Prevent mobile garbage collection
 
-          const voice = getBestVoice(lang.split('-')[0]);
-          if (voice) {
-            utterance.voice = voice;
-            utterance.lang = voice.lang;
-          } else {
-            utterance.lang = lang;
+        utterance.lang = lang.startsWith('en') ? 'en-US' : 'ja-JP';
+        utterance.rate = rate;
+        utterance.pitch = 1.0;
+
+        let hasResolved = false;
+        const finish = () => {
+          if (!hasResolved) {
+            hasResolved = true;
+            window._activeSpeechUtterance = null;
+            resolve();
           }
+        };
 
-          utterance.rate = rate;
-          utterance.pitch = 1.0;
+        utterance.onend = finish;
+        utterance.onerror = (e) => {
+          console.warn('SpeechSynthesis error:', e);
+          finish();
+        };
 
-          let hasResolved = false;
-          const finish = () => {
-            if (!hasResolved) {
-              hasResolved = true;
-              window._activeSpeechUtterance = null;
-              resolve();
-            }
-          };
+        // Safety timeout in case browser never fires onend
+        const charCount = cleaned.length;
+        const maxDurationMs = Math.max(3500, (charCount * 300) / rate);
+        setTimeout(finish, maxDurationMs);
 
-          utterance.onend = finish;
-          utterance.onerror = finish;
-
-          // Safety timeout in case browser never fires onend
-          const charCount = cleaned.length;
-          const maxDurationMs = Math.max(3000, (charCount * 350) / rate);
-          setTimeout(finish, maxDurationMs);
-
+        try {
           window.speechSynthesis.speak(utterance);
-        }, 30);
+        } catch (err) {
+          console.error('speak failed:', err);
+          finish();
+        }
       });
     }
+
+    // Audio player helper with instant interrupt support for individual button taps
+    window.playPhraseAudio = function(id) {
+      if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      const item = PHRASES.find(p => p.id === id);
+      if (item && item.en) {
+        speakText(item.en, 'en-US', 1.0);
+      }
+    };
 
     /* ========================================================
        1. LIST VIEW LOGIC
@@ -4015,7 +3997,7 @@
                 <button class="icon-btn fav ${isFav ? 'active' : ''}" onclick="toggleFav(${item.id})">
                   ${isFav ? '★' : '☆'}
                 </button>
-                <button class="icon-btn speak-btn" onclick="speakText('${escapeQuotes(item.en)}')">
+                <button class="icon-btn speak-btn" onclick="playPhraseAudio(${item.id})" aria-label="英語音声を再生">
                   🔊
                 </button>
               </div>
@@ -4215,8 +4197,11 @@
     });
 
     document.getElementById('cardSpeakBtn').addEventListener('click', () => {
+      if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
       const cur = cardList[cardIdx];
-      if (cur) speakText(cur.en);
+      if (cur) speakText(cur.en, 'en-US', 1.0);
     });
 
     document.getElementById('cardFavBtn').addEventListener('click', () => {
@@ -4385,6 +4370,9 @@
     }
 
     function startPlayer() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
       isPlaying = true;
       playerPlayToggle.innerText = '⏸';
       stepPlay();
@@ -4471,7 +4459,12 @@
       if (qText) qText.innerText = q.en;
 
       const speakBtn = document.getElementById('quizSpeakBtn');
-      if (speakBtn) speakBtn.onclick = () => speakText(q.en);
+      if (speakBtn) speakBtn.onclick = () => {
+        if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+        }
+        speakText(q.en, 'en-US', 1.0);
+      };
 
       // Generate 4 options
       const pool = getScopedPhrases().length >= 4 ? getScopedPhrases() : PHRASES;
