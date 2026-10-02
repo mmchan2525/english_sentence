@@ -1038,16 +1038,35 @@
     <!-- 4. Quiz View -->
     <section id="viewQuiz" class="view-section">
       <div class="quiz-card" id="quizContainer">
-        <div class="quiz-question-box">
-          <div class="quiz-q-num" id="quizQNum">Question 1 / 10</div>
-          <div class="quiz-q-text" id="quizQText">Loading...</div>
-          <button class="icon-btn speak-btn" id="quizSpeakBtn" style="margin-top: 8px;">🔊 発音</button>
+        <!-- Play Area -->
+        <div id="quizPlayArea">
+          <div class="quiz-question-box">
+            <div class="quiz-q-num" id="quizQNum">Question 1 / 10</div>
+            <div class="quiz-q-text" id="quizQText">Loading...</div>
+            <button class="icon-btn speak-btn" id="quizSpeakBtn" style="margin-top: 8px;">🔊 発音</button>
+          </div>
+          <div class="quiz-options" id="quizOptions">
+            <!-- Quiz options injected here -->
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <button class="btn-nav" id="quizNextBtn" style="display: none;">次へ進む →</button>
+          </div>
         </div>
-        <div class="quiz-options" id="quizOptions">
-          <!-- Quiz options injected here -->
-        </div>
-        <div style="display: flex; justify-content: flex-end;">
-          <button class="btn-nav" id="quizNextBtn" style="display: none;">次へ進む →</button>
+
+        <!-- Result Area -->
+        <div id="quizResultArea" style="display: none;">
+          <div class="quiz-score-box">
+            <h2 style="font-size: 1.8rem; margin-bottom: 10px;">クイズ完了！</h2>
+            <div id="quizScoreNumber" style="font-size: 3rem; font-weight: 800; color: var(--primary); margin: 16px 0;">
+              0 / 10
+            </div>
+            <p id="quizScoreFeedback" style="color: var(--text-muted); margin-bottom: 24px;">
+              日々の復習で定着させましょう💪
+            </p>
+            <button class="btn-action btn-master" style="width: 220px; margin: 0 auto; background: var(--primary); color: white;" onclick="initQuiz()">
+              🔄 もう一度挑戦する
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -3998,6 +4017,9 @@
         playerIdx = 0;
         updatePlayerDisplay();
       }
+      if (document.getElementById('viewQuiz').classList.contains('active')) {
+        initQuiz();
+      }
     }
 
     document.getElementById('rangeTabs').addEventListener('click', (e) => {
@@ -4346,25 +4368,36 @@
     let currentQuizIdx = 0;
     let quizScore = 0;
 
-    function initQuiz() {
+    window.initQuiz = function() {
       const pool = getScopedPhrases();
       const source = pool.length >= 4 ? pool : PHRASES;
       const shuffled = [...source].sort(() => 0.5 - Math.random());
       quizQuestions = shuffled.slice(0, Math.min(10, shuffled.length));
       currentQuizIdx = 0;
       quizScore = 0;
+
+      const playArea = document.getElementById('quizPlayArea');
+      const resultArea = document.getElementById('quizResultArea');
+      if (playArea) playArea.style.display = 'block';
+      if (resultArea) resultArea.style.display = 'none';
+
       renderQuizQuestion();
-    }
+    };
 
     function renderQuizQuestion() {
+      if (!quizQuestions || quizQuestions.length === 0) return;
       const q = quizQuestions[currentQuizIdx];
-      const qBox = document.getElementById('quizContainer');
-      document.getElementById('quizNextBtn').style.display = 'none';
+      const nextBtn = document.getElementById('quizNextBtn');
+      if (nextBtn) nextBtn.style.display = 'none';
 
-      document.getElementById('quizQNum').innerText = `Question ${currentQuizIdx + 1} / 10`;
-      document.getElementById('quizQText').innerText = q.en;
+      const qNum = document.getElementById('quizQNum');
+      if (qNum) qNum.innerText = `Question ${currentQuizIdx + 1} / ${quizQuestions.length}`;
 
-      document.getElementById('quizSpeakBtn').onclick = () => speakText(q.en);
+      const qText = document.getElementById('quizQText');
+      if (qText) qText.innerText = q.en;
+
+      const speakBtn = document.getElementById('quizSpeakBtn');
+      if (speakBtn) speakBtn.onclick = () => speakText(q.en);
 
       // Generate 4 options
       const pool = getScopedPhrases().length >= 4 ? getScopedPhrases() : PHRASES;
@@ -4372,11 +4405,13 @@
       const options = [q, ...otherChoices].sort(() => 0.5 - Math.random());
 
       const optContainer = document.getElementById('quizOptions');
-      optContainer.innerHTML = options.map(opt => `
-        <button class="quiz-opt-btn" onclick="handleQuizAnswer(this, ${opt.id === q.id}, '${escapeQuotes(q.ja)}')">
-          ${opt.ja}
-        </button>
-      `).join('');
+      if (optContainer) {
+        optContainer.innerHTML = options.map(opt => `
+          <button class="quiz-opt-btn" onclick="handleQuizAnswer(this, ${opt.id === q.id}, '${escapeQuotes(q.ja)}')">
+            ${opt.ja}
+          </button>
+        `).join('');
+      }
     }
 
     window.handleQuizAnswer = function(btn, isCorrect, correctJa) {
@@ -4398,33 +4433,39 @@
       }
 
       const nextBtn = document.getElementById('quizNextBtn');
-      nextBtn.style.display = 'block';
-      nextBtn.onclick = () => {
-        currentQuizIdx++;
-        if (currentQuizIdx < 10) {
-          renderQuizQuestion();
-        } else {
-          showQuizResult();
-        }
-      };
+      if (nextBtn) {
+        nextBtn.style.display = 'block';
+        nextBtn.onclick = () => {
+          currentQuizIdx++;
+          if (currentQuizIdx < quizQuestions.length) {
+            renderQuizQuestion();
+          } else {
+            showQuizResult();
+          }
+        };
+      }
     };
 
     function showQuizResult() {
-      const container = document.getElementById('quizContainer');
-      container.innerHTML = `
-        <div class="quiz-score-box">
-          <h2 style="font-size: 1.8rem; margin-bottom: 10px;">クイズ完了！</h2>
-          <div style="font-size: 3rem; font-weight: 800; color: var(--primary); margin: 16px 0;">
-            ${quizScore} / 10
-          </div>
-          <p style="color: var(--text-muted); margin-bottom: 24px;">
-            ${quizScore === 10 ? '完璧です！全問正解！素晴らしい！🎊' : quizScore >= 7 ? '高得点！あと少しで満点です👍' : '日々の復習で定着させましょう💪'}
-          </p>
-          <button class="btn-action btn-master" style="width: 200px; margin: 0 auto;" onclick="initQuiz()">
-            もう一度挑戦する
-          </button>
-        </div>
-      `;
+      const playArea = document.getElementById('quizPlayArea');
+      const resultArea = document.getElementById('quizResultArea');
+      if (playArea) playArea.style.display = 'none';
+      if (resultArea) resultArea.style.display = 'block';
+
+      const total = quizQuestions.length;
+      const scoreNum = document.getElementById('quizScoreNumber');
+      if (scoreNum) scoreNum.innerText = `${quizScore} / ${total}`;
+
+      const feedback = document.getElementById('quizScoreFeedback');
+      if (feedback) {
+        if (quizScore === total) {
+          feedback.innerText = '完璧です！全問正解！素晴らしい！🎊';
+        } else if (quizScore >= Math.round(total * 0.7)) {
+          feedback.innerText = '高得点！あと少しで満点です👍';
+        } else {
+          feedback.innerText = '日々の復習で定着させましょう💪';
+        }
+      }
     }
 
 
