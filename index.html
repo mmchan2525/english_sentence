@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Daily English 99 - フレーズ復習帳</title>
+  <title>Daily Yuri's English - フレーズ復習帳</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="English99">
+  <meta name="apple-mobile-web-app-title" content="Daily Yuri's English">
   <style>
     :root {
       --primary: #4f46e5;
@@ -827,7 +827,7 @@
   <!-- Top Header -->
   <header>
     <div class="header-title">
-      <span>📚</span> Daily English 351
+      <span>📚</span> Daily Yuri's English
     </div>
     <div style="display: flex; gap: 8px; align-items: center;">
       <div class="header-stats" id="statsDisplay" style="cursor: pointer;" title="タップで復習リストに絞り込み">
@@ -859,21 +859,6 @@
       <div class="search-box">
         <span class="search-icon">🔍</span>
         <input type="text" id="searchInput" class="search-input" placeholder="フレーズや日本語を検索...">
-      </div>
-
-      <!-- Quick Play Full Audio Banner -->
-      <div style="background: linear-gradient(135deg, var(--primary), #0284c7); color: white; border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow);">
-        <div>
-          <div style="font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
-            <span>🎧</span> 連続リスニング再生
-          </div>
-          <div style="font-size: 0.78rem; opacity: 0.9; margin-top: 2px;" id="quickPlayDesc">
-            現在のタブ（1～100）を自動再生：英文1回 ➔ 日本語1回 ➔ 英文2回
-          </div>
-        </div>
-        <button id="quickPlayFullBtn" style="background: white; color: var(--primary); border: none; padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-shrink: 0;">
-          ▶ 再生開始
-        </button>
       </div>
 
       <!-- Categories Pills -->
@@ -970,17 +955,6 @@
 
     <!-- 3. Auto Listening Player View -->
     <section id="viewPlayer" class="view-section">
-      <!-- Master MP3 Audio Player Box -->
-      <div style="background: linear-gradient(135deg, #312e81, #4338ca); color: white; border-radius: 20px; padding: 20px; margin-bottom: 18px; box-shadow: var(--shadow-lg);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <div style="font-size: 0.82rem; font-weight: 700; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 20px;">🎧 1～99 通しリスニングMP3 (約24分)</div>
-          <a href="daily_english_99_full.mp3" download style="color: #93c5fd; font-size: 0.8rem; text-decoration: none; font-weight: 600;">📥 MP3保存</a>
-        </div>
-        <div style="font-size: 1.15rem; font-weight: 700; margin-bottom: 4px;">1～99 通しリスニング音声</div>
-        <div style="font-size: 0.82rem; opacity: 0.85; margin-bottom: 12px;">パターン：英文1回 ➔ 日本語1回 ➔ 英文2回（100番以降は下のリアルタイム連続リスニングで全範囲を再生できます）</div>
-        <audio controls preload="metadata" src="daily_english_99_full.mp3" style="width: 100%; border-radius: 10px;"></audio>
-      </div>
-
       <!-- Real-time TTS Interactive Player -->
       <div class="player-card">
         <h2 class="player-title">⚡ リアルタイム連続リスニング</h2>
@@ -3998,13 +3972,6 @@
         b.classList.toggle('active', b.dataset.range === range);
       });
 
-      // Update Quick Play Banner text
-      const quickDesc = document.getElementById('quickPlayDesc');
-      if (quickDesc) {
-        const rangeText = range === 'all' ? '全342フレーズ' : (range === '301+' ? '301～' : range);
-        quickDesc.innerText = `現在のタブ（${rangeText}）を自動再生：英文1回 ➔ 日本語1回 ➔ 英文2回`;
-      }
-
       // Show category pills only on 1-100 range
       const catScroll = document.getElementById('categoryScroll');
       if (catScroll) {
@@ -4503,25 +4470,6 @@
           initQuiz();
         }
       });
-    });
-
-    // Quick Play Full button
-    document.getElementById('quickPlayFullBtn').addEventListener('click', () => {
-      // Switch tab to Player
-      document.querySelectorAll('.bottom-nav .nav-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-      const playerNavBtn = document.querySelector('.bottom-nav .nav-btn[data-target="viewPlayer"]');
-      if (playerNavBtn) playerNavBtn.classList.add('active');
-      document.getElementById('viewPlayer').classList.add('active');
-
-      // Start from first of current range with en1_ja1_en2
-      playerTargetSelect.value = 'current';
-      playerIdx = 0;
-      playerModeSelect.value = 'en1_ja1_en2';
-      updatePlayerDisplay();
-      startPlayer();
-      const rangeText = currentRange === 'all' ? '全342フレーズ' : (currentRange === '301+' ? '301～' : currentRange);
-      showToast(`${rangeText} を「英文1回・日本語1回・英文2回」で連続再生中 🎧`);
     });
 
     // Clicking header stats filters to review list
