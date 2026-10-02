@@ -982,14 +982,6 @@
             </select>
           </div>
           <div class="setting-row">
-            <span>英語速度:</span>
-            <select class="setting-select" id="playerSpeedSelect">
-              <option value="0.8">0.8x (ゆっくり)</option>
-              <option value="1.0" selected>1.0x (標準)</option>
-              <option value="1.2">1.2x (速め)</option>
-            </select>
-          </div>
-          <div class="setting-row">
             <span>再生対象:</span>
             <select class="setting-select" id="playerTargetSelect">
               <option value="current" selected>現在のタブ範囲</option>
@@ -4270,7 +4262,6 @@
     const playerEnEl = document.getElementById('playerEn');
     const playerJaEl = document.getElementById('playerJa');
     const playerPlayToggle = document.getElementById('playerPlayToggle');
-    const playerSpeedSelect = document.getElementById('playerSpeedSelect');
     const playerModeSelect = document.getElementById('playerModeSelect');
     const playerTargetSelect = document.getElementById('playerTargetSelect');
 
@@ -4317,7 +4308,7 @@
       const cur = list[playerIdx];
       updatePlayerDisplay();
 
-      const speed = parseFloat(playerSpeedSelect.value) || 1.0;
+      const speed = 1.0; // 音声の歪みを防ぐため等速(1.0x)に固定
       const mode = playerModeSelect.value;
 
       if (mode === 'en1_ja1_en2') {
