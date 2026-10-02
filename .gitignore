@@ -26,3 +26,7 @@ find_all_emojis.py
 analyze_topics.py
 phrases_list.txt
 test_cat.py
+inspect_speech.py
+speech_issues.txt
+fix_speech_texts.py
+update_app_with_audio_fix.py
