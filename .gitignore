@@ -30,3 +30,6 @@ inspect_speech.py
 speech_issues.txt
 fix_speech_texts.py
 update_app_with_audio_fix.py
+generate_all_audio_system.py
+check_audio_complete.py
+update_index_with_master_audio.py
