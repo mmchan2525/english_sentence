@@ -50,4 +50,4 @@ GitHub Pagesを有効にすると、以下のURLでブラウザから即座に�
 
 ## 👤 作者
 - **作者**: chan_meg
-- © chan_meg · otayori-translate v1.0
+- © chan_meg · yuri's English v1.0
