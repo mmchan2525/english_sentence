@@ -1,0 +1,7 @@
+audio_files/temp/
+avatar_b64.txt
+test_silence.py
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
