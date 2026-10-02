@@ -846,10 +846,10 @@
     <div class="range-tabs-wrapper">
       <div class="range-tabs" id="rangeTabs">
         <button class="range-tab-btn active" data-range="1-100">1～100 <span class="range-count">100</span></button>
-        <button class="range-tab-btn" data-range="101-200">101～200 <span class="range-count">99</span></button>
+        <button class="range-tab-btn" data-range="101-200">101～200 <span class="range-count">100</span></button>
         <button class="range-tab-btn" data-range="201-300">201～300 <span class="range-count">91</span></button>
         <button class="range-tab-btn" data-range="301+">301～ <span class="range-count">51</span></button>
-        <button class="range-tab-btn" data-range="all">すべて <span class="range-count">341</span></button>
+        <button class="range-tab-btn" data-range="all">すべて <span class="range-count">342</span></button>
       </div>
     </div>
 
@@ -1024,10 +1024,10 @@
             <select class="setting-select" id="playerTargetSelect">
               <option value="current" selected>現在のタブ範囲</option>
               <option value="1-100">1～100 (100件)</option>
-              <option value="101-200">101～200 (99件)</option>
+              <option value="101-200">101～200 (100件)</option>
               <option value="201-300">201～300 (91件)</option>
               <option value="301+">301～ (51件)</option>
-              <option value="all">全341フレーズ</option>
+              <option value="all">全342フレーズ</option>
               <option value="fav">⭐ 要復習のみ</option>
             </select>
           </div>
@@ -2644,6 +2644,14 @@
     "range": "101-200"
   },
   {
+    "id": 192,
+    "en": "I’ll leave it to my child.",
+    "ja": "子どもに任せます。",
+    "note": "leave it to〜: 〜に任せる",
+    "cat": "general",
+    "range": "101-200"
+  },
+  {
     "id": 193,
     "en": "Moderate stress is good for us.",
     "ja": "適度なストレスはあったほうが良い。",
@@ -3993,7 +4001,7 @@
       // Update Quick Play Banner text
       const quickDesc = document.getElementById('quickPlayDesc');
       if (quickDesc) {
-        const rangeText = range === 'all' ? '全341フレーズ' : (range === '301+' ? '301～' : range);
+        const rangeText = range === 'all' ? '全342フレーズ' : (range === '301+' ? '301～' : range);
         quickDesc.innerText = `現在のタブ（${rangeText}）を自動再生：英文1回 ➔ 日本語1回 ➔ 英文2回`;
       }
 
@@ -4512,7 +4520,7 @@
       playerModeSelect.value = 'en1_ja1_en2';
       updatePlayerDisplay();
       startPlayer();
-      const rangeText = currentRange === 'all' ? '全341フレーズ' : (currentRange === '301+' ? '301～' : currentRange);
+      const rangeText = currentRange === 'all' ? '全342フレーズ' : (currentRange === '301+' ? '301～' : currentRange);
       showToast(`${rangeText} を「英文1回・日本語1回・英文2回」で連続再生中 🎧`);
     });
 

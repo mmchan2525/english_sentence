@@ -1528,6 +1528,14 @@
     "range": "101-200"
   },
   {
+    "id": 192,
+    "en": "I’ll leave it to my child.",
+    "ja": "子どもに任せます。",
+    "note": "leave it to〜: 〜に任せる",
+    "cat": "general",
+    "range": "101-200"
+  },
+  {
     "id": 193,
     "en": "Moderate stress is good for us.",
     "ja": "適度なストレスはあったほうが良い。",
