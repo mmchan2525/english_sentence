@@ -19,3 +19,10 @@ build_full_351_dataset.py
 build_dataset.py
 parsed_new_phrases.json
 add_192.py
+categorize_all.py
+apply_categories_and_emojis.py
+update_all_index.py
+find_all_emojis.py
+analyze_topics.py
+phrases_list.txt
+test_cat.py
