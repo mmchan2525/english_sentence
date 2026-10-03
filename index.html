@@ -995,15 +995,6 @@
             <span>🎧</span> 画面ロック中・他アプリ操作中も完全バックグラウンド再生
           </div>
           <div class="setting-row">
-            <span>再生パターン:</span>
-            <select class="setting-select" id="playerModeSelect">
-              <option value="en1_ja1_en2" selected>英文1回 ➔ 日本語1回 ➔ 英文2回 (推奨)</option>
-              <option value="en_ja">英文1回 ➔ 日本語1回</option>
-              <option value="en_only">英文のみ (リスニング特化)</option>
-              <option value="en_twice">英文2回 ➔ 日本語1回</option>
-            </select>
-          </div>
-          <div class="setting-row">
             <span>再生対象:</span>
             <select class="setting-select" id="playerTargetSelect">
               <option value="current" selected>現在のタブ範囲</option>
@@ -7137,7 +7128,6 @@
     const playerJaEl = document.getElementById('playerJa');
     const playerPhaseEl = document.getElementById('playerPhase');
     const playerPlayToggle = document.getElementById('playerPlayToggle');
-    const playerModeSelect = document.getElementById('playerModeSelect');
     const playerTargetSelect = document.getElementById('playerTargetSelect');
 
     function setPlayerPhase(text) {
