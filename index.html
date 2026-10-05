@@ -408,23 +408,35 @@
 
     /* Masking states */
     .hide-en .phrase-en {
-      font-size: 1.35rem;
-      font-weight: 800;
-      line-height: 1.45;
-      color: var(--text);
-      word-break: break-word;
-      margin-bottom: 4px;
+      -webkit-filter: blur(7px);
+      filter: blur(7px);
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: pointer;
+      opacity: 0.35;
+      transition: filter 0.2s ease, -webkit-filter 0.2s ease, opacity 0.2s ease;
     }
     .hide-ja .phrase-ja {
-      font-size: 1.18rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      line-height: 1.45;
-      word-break: break-word;
-      margin-bottom: 4px;
+      -webkit-filter: blur(7px);
+      filter: blur(7px);
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: pointer;
+      opacity: 0.35;
+      transition: filter 0.2s ease, -webkit-filter 0.2s ease, opacity 0.2s ease;
     }
+    .hide-en .phrase-en:hover,
+    .hide-ja .phrase-ja:hover {
+      opacity: 0.6;
+    }
+    .phrase-en.revealed,
+    .phrase-ja.revealed,
     .revealed {
+      -webkit-filter: none !important;
       filter: none !important;
+      opacity: 1 !important;
+      user-select: auto !important;
+      -webkit-user-select: auto !important;
     }
 
     /* Flashcard Mode */
