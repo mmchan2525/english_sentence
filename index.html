@@ -7,6 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Daily Yuri's English">
+  <link rel="apple-touch-icon" href="avatar.png">
+  <link rel="manifest" href="manifest.json">
   <style>
     :root {
       --primary: #4f46e5;
@@ -7599,6 +7601,13 @@
     initCards();
     setRange('1-100');
     updatePlayerDisplay();
+
+    // Register Service Worker for offline PWA support
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
   </script>
 </body>
 </html>
